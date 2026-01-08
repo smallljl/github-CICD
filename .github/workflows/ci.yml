@@ -1,4 +1,5 @@
 name: CI
+
 on:
   pull_request:
   push:
@@ -8,6 +9,7 @@ permissions:
   contents: read
 
 concurrency:
+  # 同一分支并发只保留最新一次，避免重复跑 CI 浪费额度
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
@@ -15,20 +17,34 @@ jobs:
   vite_react:
     runs-on: ubuntu-latest
     steps:
+      # 拉取仓库代码
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-
+      # 安装 Node.js（这里不启用 setup-node 的 pnpm cache，
+      # 因为它会在此步骤就要求 PATH 里已有 pnpm）
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
-      - run: pnpm --version
+      # 启用 Corepack，并安装/激活固定版本 pnpm（与 packageManager 对齐）
+      - run: corepack enable
+      - run: corepack prepare pnpm@10.17.1 --activate
+
+      # 读取 pnpm store 目录路径，供后续缓存使用
+      - id: pnpm-cache
+        run: echo "store_path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      # 缓存 pnpm store，加速后续安装
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store_path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+
+      # 严格按锁文件安装依赖（CI 推荐使用 frozen-lockfile）
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint --if-present
+      # 运行 lint
+      - run: pnpm run lint
+      # 运行单测（CI 模式）
       - run: pnpm run test:ci
+      # 构建产物（生成 dist/）
       - run: pnpm run build
