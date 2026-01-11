@@ -1,0 +1,12 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: vite-app-nginx
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    extra_hosts:
+      - "webhook-host:host-gateway"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /var/www/vite-app:/usr/share/nginx/html:ro
+    restart: unless-stopped
