@@ -9,3 +9,4 @@ test('renders', () => {
   render(<Hello />)
   expect(screen.getByRole('heading', { name: 'Hello Vite + React' })).toBeInTheDocument()
 })
+
