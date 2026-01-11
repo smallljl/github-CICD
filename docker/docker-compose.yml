@@ -3,7 +3,7 @@ services:
     image: nginx:alpine
     container_name: vite-app-nginx
     ports:
-      - "${NGINX_PORT:-8080}:80"
+      - "${NGINX_PORT:-9000}:80"
     extra_hosts:
       - "webhook-host:host-gateway"
     volumes:
